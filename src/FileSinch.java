@@ -7,27 +7,26 @@ import static java.nio.file.FileVisitResult.CONTINUE;
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 
 public class FileSinch {
-    private static  class ExitException extends Exception{  }
+    private static class ExitException extends Exception {
+    }
 
-    public  static void main(String[] args){
-        Path src = null,dst = null;
+    public static void main(String[] args) {
+        Path src = null, dst = null;
         try {
             System.out.println("Введи эталонную директорию");
             src = getPath();
             System.out.println("Что синхронизировать/создать?");
             dst = getPathWhithoutCheck();
             try {
-                sinch(src,dst);
+                sinch(src, dst);
             } catch (IOException e) {
-                System.out.println("Какая-то ошибка");
+                System.out.println("Ошибка:  "+e.getMessage());
             }
-            System.out.println("Похоже, что все прошло гладко");
-        }
-        catch (ExitException e){
+            System.out.println("Синхронизация прошла успешно");
+        } catch (ExitException e) {
             System.out.println("Вы уже уходите? \"Баба з возу - кобыле легче \" ©");
-        }
-        catch (Exception e){
-            System.out.println("Атас! "+e.getMessage());
+        } catch (Exception e) {
+            System.out.println("Атас! " + e.getMessage());
         }
 
     }
@@ -39,30 +38,28 @@ public class FileSinch {
                 new SimpleFileVisitor<Path>() {
                     @Override
                     public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs)
-                            throws IOException
-                    {
+                            throws IOException {
                         Path targetdir = target.resolve(source.relativize(dir));
-                        if(Files.exists(targetdir)){
+                        if (Files.exists(targetdir)) {
                             Set<String> listFilesSrc = getSet(dir);
                             Set<String> deleteFromDst = getSet(targetdir);
                             deleteFromDst.removeAll(listFilesSrc);
-                            deleteAll(deleteFromDst,targetdir);
+                            deleteAll(deleteFromDst, targetdir);
                         }
                         try {
                             Files.copy(dir, targetdir);
-
                         } catch (FileAlreadyExistsException e) {
                             if (!Files.isDirectory(targetdir))
                                 throw e;
                         }
                         return CONTINUE;
                     }
+
                     @Override
                     public FileVisitResult visitFile(Path file, BasicFileAttributes attrs)
-                            throws IOException
-                    {
+                            throws IOException {
                         Path newFile = target.resolve(source.relativize(file));
-                        if(false == Files.exists(newFile) || Files.getLastModifiedTime(file).compareTo(Files.getLastModifiedTime(newFile)) > 0){
+                        if (false == Files.exists(newFile) || Files.getLastModifiedTime(file).compareTo(Files.getLastModifiedTime(newFile)) > 0) {
                             Files.copy(file, newFile, REPLACE_EXISTING);
                         }
                         return CONTINUE;
@@ -70,37 +67,39 @@ public class FileSinch {
                 });
     }
 
-    private static Path getPath() throws ExitException{
+    private static Path getPath() throws ExitException {
         Path path;
-        do{
+        do {
             System.out.println("Директория должна существовать! Для выхода введи \"?\"");
-            path= getPathWhithoutCheck();
-        }while ( false == path.toFile().isDirectory());
+            path = getPathWhithoutCheck();
+        } while (false == path.toFile().isDirectory());
         return path;
     }
-    private static Path getPathWhithoutCheck() throws ExitException{
+
+    private static Path getPathWhithoutCheck() throws ExitException {
         Scanner scanner = new Scanner(System.in);
         String pathStr = scanner.nextLine();
-        if(pathStr.equals("?")){
+        if (pathStr.equals("?")) {
             throw new ExitException();
         }
-        return  Paths.get(pathStr);
+        return Paths.get(pathStr);
     }
-    private static Set<String> getSet(Path path){
+
+    private static Set<String> getSet(Path path) {
 
         Set<String> result = new TreeSet<>();
-        if(path.toFile().list().length > 0){
-            Collections.addAll(result,path.toFile().list());
+        if (path.toFile().list().length > 0) {
+            Collections.addAll(result, path.toFile().list());
         }
         return result;
-
     }
-    private static void deleteAll(Set<String> deletFromDst,Path dst){
-        for(String file : deletFromDst){
+
+    private static void deleteAll(Set<String> deletFromDst, Path dst) {
+        for (String file : deletFromDst) {
             try {
-                Files.delete(Paths.get(dst.toString(),file));
+                Files.delete(Paths.get(dst.toString(), file));
             } catch (IOException e) {
-                System.out.println("Ошибка удаления в deleteAll "+e.getMessage());
+                System.out.println("Ошибка удаления в deleteAll " + e.getMessage());
             }
         }
     }
